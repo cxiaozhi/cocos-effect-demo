@@ -1,35 +1,26 @@
-// Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
-
 CCEffect %{
   techniques:
-  - passes:
-    - vert: vs
-      frag: fs
-      blendState:
-        targets:
-        - blend: true
-      rasterizerState:
-        cullMode: none
-      properties:
-        mytexture: { value: white }
-        alphaThreshold: { value: 0.5 }
-        edge: {
-          value: 0.15,
-          inspector: {
-            tooltip: "圆角范围",
-            range: [0.0, 0.5]
-          }
-        }
+  - name: opaque
+    passes:
+    - vert: unlit-vs
+      frag: unlit-fs
+      properties: 
+        mainTexture: { value: white }
+        wh_ratio: { value: 1.0 }
+        blur: { value: 0.35 }
+        radius: { value: 0.5 }
+        center: { value: [0.5,0.5]}
 }%
 
-
-CCProgram vs %{
+CCProgram unlit-vs %{
   precision highp float;
 
-  #include <cc-global>
-  #include <cc-local>
+  #include <legacy/input-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <common/common-define>
+  #include <builtin/uniforms/cc-local>
 
-  in vec3 a_position;
+  in highp vec3 aa_position;
   in vec4 a_color;
   out vec4 v_color;
 
@@ -38,8 +29,9 @@ CCProgram vs %{
   out vec2 v_uv0;
   #endif
 
+
   void main () {
-    vec4 pos = vec4(a_position, 1);
+    vec4 pos = vec4(aa_position, 1);
 
     #if CC_USE_MODEL
     pos = cc_matViewProj * cc_matWorld * pos;
@@ -57,45 +49,39 @@ CCProgram vs %{
   }
 }%
 
-
-CCProgram fs %{
+CCProgram unlit-fs %{
   precision highp float;
 
   #include <alpha-test>
 
   in vec4 v_color;
 
-  uniform Props {
-    float edge;
-  };
-
   #if USE_TEXTURE
   in vec2 v_uv0;
-  uniform sampler2D mytexture;
+  uniform sampler2D mainTexture;
   #endif
 
-  out vec4 FragColor;
+  uniform ARGS{
+    float radius;
+    float blur;
+    vec2 center;
+    float wh_ratio;
+  };
+
+  layout(location = 0) out vec4 fragColor;
   void main () {
     vec4 o = vec4(1, 1, 1, 1);
-
-    #if USE_TEXTURE
-    o *= texture(mytexture, v_uv0);
-      #if CC_USE_ALPHA_ATLAS_TEXTURE
-      o.a *= texture2D(mytexture, v_uv0 + vec2(0, 0.5)).r;
-      #endif
-    #endif
-
+    o *= texture(mainTexture, v_uv0);
     o *= v_color;
 
-    ALPHA_TEST(o);
+    float circle = radius * radius;
+    float rx = center.x * wh_ratio;
+    float ry = center.y;
+    float dis = (v_uv0.x * wh_ratio - rx) * (v_uv0.x * wh_ratio - rx) + (v_uv0.y  - ry) * (v_uv0.y - ry);
 
-    vec2 uv = v_uv0.xy - vec2(0.5, 0.5);
-    float rx = abs(uv.x) - (0.5 - edge);
-    float ry = abs(uv.y) - (0.5 - edge);
-    float mx = step(0.5 - edge, abs(uv.x));
-    float my = step(0.5 - edge, abs(uv.y));
-    float radius = length(vec2(rx, ry));
-    float a = 1.0 - mx * my * step(edge, radius) * smoothstep(0., edge * 0.01, radius - edge);
-    FragColor = vec4(o.rgb, o.a * a);
+    o.a = smoothstep(circle, circle - blur, dis) * o.a;
+
+    fragColor = o;
   }
 }%
+

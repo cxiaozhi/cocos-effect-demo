@@ -27,8 +27,8 @@
   ],
   "_props": [
     {
-      "ppptexture": {
-        "__uuid__": "b48871a0-86c8-41c7-9269-637dc2638e8b@6c48a",
+      "mainTexture": {
+        "__uuid__": "f79b7d26-a12e-4cc1-9316-0a9360cb15b9@6c48a",
         "__expectedType__": "cc.Texture2D"
       }
     }

@@ -26,11 +26,6 @@
     }
   ],
   "_props": [
-    {
-      "mainTexture": {
-        "__uuid__": "f79b7d26-a12e-4cc1-9316-0a9360cb15b9@6c48a",
-        "__expectedType__": "cc.Texture2D"
-      }
-    }
+    {}
   ]
 }
